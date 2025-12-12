@@ -46,89 +46,40 @@ export async function editTokenToServer(
   return response;
 }
 
-export async function sendPackageReadyEmail({
-  to,
-  storeName,
-  storeAddress,
-  userToken,
-}: {
-  to: string;
-  storeName: string;
-  storeAddress: string;
-  userToken: string;
-}) {
-  var QRCode = require("qrcode");
-  // Generar data URL del QR
-  const dataUrl: string = await QRCode.toDataURL(userToken, { type: "png" });
-  // Extraer solo el Base64 (sin el prefijo "data:image/png;base64,")
-  const base64 = dataUrl.split(";base64,").pop()!;
-  sendgrid.setApiKey(env.SENDGRID_API_KEY);
-  const msg = {
-    to,
-    from: env.MAIL_SENDER,
-    subject: "PICKPACK: Paquete listo para ser recogido",
-    html: `
-			<body>
-				<p>El paquete destinado a su locker reservado en ${storeName} en ${storeAddress} fue preparado.</p>
-				<p><strong>Su código de acceso (Token) para retirar su paquete es ${userToken}</strong></p>
-				<p>Atentamente,</p>
-				<p>el equipo de <strong>PickPack</strong></p>
-			</body>`,
-    attachments: [
-      {
-        filename: `QR_${userToken}.png`,
-        content: base64,
-        type: "image/png",
-        disposition: "attachment",
-        contentId: "qr_code_delivery",
-      },
-    ],
-  };
-  try {
-    console.log("ANTES DE MAIL DE PAQUETE LISTO");
-    console.time("MAIL DE AVISO DE PAQUETE LISTO");
-    await sendgrid.send(msg);
-    console.timeEnd("MAIL DE AVISO DE PAQUETE LISTO");
-  } catch (error) {
-    console.log("Hubo un problema al enviar el mail. El error fue:", error);
-  }
-}
 
-export async function sendPackageDeliveredEmail({
+export async function sendPackageAvailableTakeAwayEmail({
   to,
   lockerAddress,
   storeName,
   checkoutTime,
   userToken,
+  sender,
 }: {
   to: string;
   lockerAddress: string;
   storeName: string;
-  checkoutTime: string;
+  checkoutTime: string | null;
   userToken: string;
+  sender?: string;
 }) {
   var QRCode = require("qrcode");
   // Generar data URL del QR
   const dataUrl: string = await QRCode.toDataURL(userToken, { type: "png" });
   // Extraer solo el Base64 (sin el prefijo "data:image/png;base64,")
   const base64 = dataUrl.split(";base64,").pop()!;
-  const fechaFin = checkoutTime.split("T")[0];
-  const horaFin = checkoutTime.split("T")[1];
+  const fechaFin = checkoutTime ? checkoutTime.split("T")[0] : null;
+  const horaFin = checkoutTime ? checkoutTime.split("T")[1] : null;
   sendgrid.setApiKey(env.SENDGRID_API_KEY);
   const msg = {
     to,
-    from: env.MAIL_SENDER,
-    subject: "PICKPACK: Paquete listo para ser recogido",
+    from: sender ?? env.MAIL_SENDER,
+    subject: "Farmacias y Perfumerías Global: Paquete listo para ser recogido!",
     html: `
 			<body>
-
-				<p>El paquete destinado a su locker reservado en ${storeName} en ${lockerAddress} fue entregado. Le recordamos que el tiempo límite para pasarlo a buscar es ${horaFin} del ${fechaFin}</p>
-
+				<p>El paquete destinado a su locker reservado en ${storeName} en ${lockerAddress} fue entregado. ${checkoutTime !== null ? `Le recordamos que el tiempo límite para pasarlo a buscar es ${horaFin} del ${fechaFin}` : ""}</p>
 				<p><strong>Su código de acceso (Token) para retirar su paquete es ${userToken}</strong></p>
-
 				<p>Atentamente,</p>
-				<p>el equipo de <strong>PickPack</strong></p>
-
+				<p>el equipo de <strong>Farmacias y Perfumerías Global</strong></p>
 			</body>`,
     attachments: [
       {
@@ -140,93 +91,118 @@ export async function sendPackageDeliveredEmail({
       },
     ],
   };
+
   try {
-    console.log("ANTES DE MAIL DE PAQUETE LISTO");
-    console.time("MAIL DE AVISO DE PAQUETE LISTO");
+    console.log("ANTES DE MAIL TA DE PAQUETE LISTO");
+    console.time("MAIL TA DE AVISO DE PAQUETE LISTO");
     await sendgrid.send(msg);
-    console.timeEnd("MAIL DE AVISO DE PAQUETE LISTO");
+    console.timeEnd("MAIL TA DE AVISO DE PAQUETE LISTO");
   } catch (error) {
-    console.log("Hubo un problema al enviar el mail. El error fue:", error);
+    console.log("Hubo un problema al enviar el mail takeaway. El error fue:", error);
   }
 }
 
-export async function sendGoodbyeEmail({ to }: { to: string }) {
-  // const qrCode = await QRCode.toDataURL(userToken);
-
+export async function sendPackageAvailablePickPackEmail({
+  to,
+  lockerAddress,
+  storeName,
+  checkoutTime,
+  userToken,
+  sender,
+}: {
+  to: string;
+  lockerAddress: string;
+  storeName: string;
+  checkoutTime: string | null;
+  userToken: string;
+  sender?: string;
+}) {
+  var QRCode = require("qrcode");
+  // Generar data URL del QR
+  const dataUrl: string = await QRCode.toDataURL(userToken, { type: "png" });
+  // Extraer solo el Base64 (sin el prefijo "data:image/png;base64,")
+  const base64 = dataUrl.split(";base64,").pop()!;
+  const fechaFin = checkoutTime ? checkoutTime.split("T")[0] : null;
+  const horaFin = checkoutTime ? checkoutTime.split("T")[1] : null;
   sendgrid.setApiKey(env.SENDGRID_API_KEY);
   const msg = {
     to,
-    from: env.MAIL_SENDER,
+    from: sender ?? env.MAIL_SENDER,
+    subject: "PICKPACK: Paquete listo para ser recogido",
+    html: `
+			<body>
+				<p>El paquete destinado a su locker reservado en ${storeName} en ${lockerAddress} fue entregado. ${checkoutTime !== null ? `Le recordamos que el tiempo límite para pasarlo a buscar es ${horaFin} del ${fechaFin}` : ""}</p>
+				<p><strong>Su código de acceso (Token) para retirar su paquete es ${userToken}</strong></p>
+				<p>Atentamente,</p>
+				<p>el equipo de <strong>PickPack</strong></p>
+			</body>`,
+    attachments: [
+      {
+        filename: `QR_${userToken}.png`,
+        content: base64,
+        type: "image/png",
+        disposition: "attachment",
+        contentId: "qr_code_delivery",
+      },
+    ],
+  };
+
+  try {
+    console.log("ANTES DE MAIL PP DE PAQUETE LISTO");
+    console.time("MAIL PP DE AVISO DE PAQUETE LISTO");
+    await sendgrid.send(msg);
+    console.timeEnd("MAIL PP DE AVISO DE PAQUETE LISTO");
+  } catch (error) {
+    console.log("Hubo un problema al enviar el mail pickpack. El error fue:", error);
+  }
+}
+
+export async function sendGoodbyePickPackEmail({ to, sender }: { to: string, sender?: string }) {
+  sendgrid.setApiKey(env.SENDGRID_API_KEY);
+  const msg = {
+    to,
+    from: sender ?? env.MAIL_SENDER,
     subject: "PICKPACK: paquete recogido",
     html: `
 			<body>
-
 				<p>Gracias por confiar en <strong>PickPack</strong>, esperamos que nuestro servicio haya sido de su agrado.</p>
-
 				<p>Atentamente,</p>
 				<p>el equipo de <strong>PickPack</strong></p>
-
 			</body>`,
-    // attachments: [
-    // 	{
-    // 		filename: `${userToken}.png`,
-    // 		content: qrCode,
-    // 		type: 'image/png',
-    // 		disposition: 'attachment'
-    // 	}
-    // ],
   };
   try {
-    console.log("ANTES DE MAIL DE DESPEDIDA");
-    console.time("MAIL DE DESPEDIDA");
+    console.log("ANTES DE MAIL PP DE DESPEDIDA");
+    console.time("MAIL PP DE DESPEDIDA");
     await sendgrid.send(msg);
-    console.timeEnd("MAIL DE DESPEDIDA");
+    console.timeEnd("MAIL PP DE DESPEDIDA");
   } catch (error) {
-    console.log("Hubo un problema al enviar el mail. El error fue:", error);
+    console.log("Hubo un problema al enviar el mail pickpack despedida. El error fue:", error);
   }
 }
-export async function sendEmailTest(
-  { to }: { to: string },
-  { body }: { body: LockerWebhook },
-) {
-  // const qrCode = await QRCode.toDataURL(userToken);
 
+export async function sendGoodbyeTakeAwayEmail({ to, sender }: { to: string, sender?: string }) {
   sendgrid.setApiKey(env.SENDGRID_API_KEY);
   const msg = {
     to,
-    from: env.MAIL_SENDER,
-    subject: "prueba wh",
+    from: sender ?? env.MAIL_SENDER,
+    subject: "Farmacias y Perfumerías Global: Paquete recogido!",
     html: `
 			<body>
-<p>${body.data}
-</p>
-				<p>${body.descripcion}
-</p>
-<p>${body.evento}
-</p>
-<p>${body.fechaCreacion}
-</p>
-<p>${body.nroSerieLocker}
-</p>
+				<p>Gracias por confiar en <strong>Farmacias y Perfumerías Global</strong>, esperamos que nuestro servicio haya sido de su agrado.</p>
+				<p>Atentamente,</p>
+				<p>el equipo de <strong>Farmacias y Perfumerías Global</strong></p>
 			</body>`,
-    // attachments: [
-    // 	{
-    // 		filename: `${userToken}.png`,
-    // 		content: qrCode,
-    // 		type: 'image/png',
-    // 		disposition: 'attachment'
-    // 	}
-    // ],
   };
   try {
-    console.log("ANTES DE MAIL DE DESPEDIDA");
-    console.time("MAIL DE DESPEDIDA");
+    console.log("ANTES DE MAIL TA DE DESPEDIDA");
+    console.time("MAIL TA DE DESPEDIDA");
     await sendgrid.send(msg);
-    console.timeEnd("MAIL DE DESPEDIDA");
+    console.timeEnd("MAIL TA DE DESPEDIDA");
   } catch (error) {
-    console.log("Hubo un problema al enviar el mail. El error fue:", error);
+    console.log("Hubo un problema al enviar el mail takeaway despedida. El error fue:", error);
   }
 }
+
 export function isWithinDates(start: string, end?: string | null) {
   const now = new Date(Date.now());
   const startDate = new Date(start);

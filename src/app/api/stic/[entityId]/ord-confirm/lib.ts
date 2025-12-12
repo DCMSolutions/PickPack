@@ -142,7 +142,21 @@ export async function sticProcessOrder({
   const coin = "";
   const backofficeEmail = store.backofficeEmail;
 
-  await sendBackofficeEmail({ tokensYTamaños, backofficeEmail, storeName, storeAddress, nReserve, fechaInicio, fechaFin, coin, transactionAmount, entityId });
+  const email_sender_config: PrivateConfigKeys = "email_sender";
+  let email_sender: string | undefined = (
+    await db.query.privateConfig.findFirst({
+      where: and(
+        eq(schema.privateConfig.key, email_sender_config),
+        eq(schema.privateConfig.entidadId, entityId),
+      ),
+    })
+  )?.value!;
+
+  if (email_sender.trim() === "") {
+    email_sender = undefined;
+  }
+
+  await sendBackofficeEmail({ sender: email_sender, tokensYTamaños, backofficeEmail, storeName, storeAddress, nReserve, fechaInicio, fechaFin, coin, transactionAmount, entityId });
   return NextResponse.json(null, { status: 200 });
 }
 
@@ -156,7 +170,8 @@ async function sendBackofficeEmail({
   fechaFin,
   coin,
   transactionAmount,
-  entityId
+  entityId,
+  sender,
 }: {
   tokensYTamaños: [string, string][];
   backofficeEmail: string | null;
@@ -168,6 +183,7 @@ async function sendBackofficeEmail({
   coin: string;
   transactionAmount: string | number;
   entityId: string;
+  sender?: string;
 }) {
   try {
     var QRCode = require("qrcode");
@@ -207,7 +223,7 @@ async function sendBackofficeEmail({
 
     const msg = {
       to: backofficeEmail,
-      from: `${env.MAIL_SENDER}`,
+      from: `${sender ?? env.MAIL_SENDER}`,
       subject: `PICKPACK: Confirmación de reserva de locker`,
       html: `
 

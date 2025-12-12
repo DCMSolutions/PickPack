@@ -12,17 +12,19 @@ import { and, eq } from "drizzle-orm";
 import {
   addTokenToServer,
   isWithinDates,
-  sendPackageDeliveredEmail,
-  sendGoodbyeEmail,
+  sendGoodbyePickPackEmail,
   editTokenToServerWithStoreExtraTime,
   getLockerAddressForEmail,
   getTokenUseExtraTime,
   addMinutes,
-  sendPackageReadyEmail,
+  sendPackageAvailableTakeAwayEmail,
+  sendPackageAvailablePickPackEmail,
+  sendGoodbyeTakeAwayEmail,
 } from "./helpers";
 import { PrivateConfigKeys } from "~/lib/config";
 
-const tk: PrivateConfigKeys = "token_empresa";
+const tk_config: PrivateConfigKeys = "token_empresa";
+const email_sender_config: PrivateConfigKeys = "email_sender";
 
 export async function POST(request: NextRequest) {
   const webhook: LockerWebhook = await request.json();
@@ -66,14 +68,28 @@ async function tokenUseResponseHandler(webhook: LockerWebhook) {
     console.log("error, entidad no encontrada");
     return;
   }
+
   const bearer_token = (
     await db.query.privateConfig.findFirst({
       where: and(
-        eq(schema.privateConfig.key, tk),
+        eq(schema.privateConfig.key, tk_config),
         eq(schema.privateConfig.entidadId, store.entidadId),
       ),
     })
   )?.value!;
+
+  let email_sender: string | undefined = (
+    await db.query.privateConfig.findFirst({
+      where: and(
+        eq(schema.privateConfig.key, email_sender_config),
+        eq(schema.privateConfig.entidadId, store.entidadId),
+      ),
+    })
+  )?.value!;
+
+  if (email_sender.trim() === "") {
+    email_sender = undefined;
+  }
 
   const webhookData: TokenUseResponseData = JSON.parse(
     webhook.data as unknown as string,
@@ -87,6 +103,7 @@ async function tokenUseResponseHandler(webhook: LockerWebhook) {
     .select()
     .from(reservas)
     .where(eq(reservas.NroSerie, webhook.nroSerieLocker));
+
   const userTokenReservation = lockerReservations.find((reservation) => {
     return (
       reservation.Token2 === parseInt(webhookData.Token) &&
@@ -129,13 +146,20 @@ async function tokenUseResponseHandler(webhook: LockerWebhook) {
         `El servidor falló editando el token de usuario ${webhookData.Token} con el siguiente mensaje de error: ${error}`,
       );
     }
-    await sendGoodbyeEmail({ to: userTokenReservation!.client! });
+
+    if (userTokenReservation.mode === "takeAway") {
+      await sendGoodbyeTakeAwayEmail({ to: userTokenReservation!.client!, sender: email_sender });
+    } else {
+      await sendGoodbyePickPackEmail({ to: userTokenReservation!.client!, sender: email_sender });
+    }
+
     return;
   }
 
   const deliveryTokenReservation = lockerReservations.find((reservation) => {
     return reservation.Token1 === parseInt(webhookData.Token);
   });
+
   if (deliveryTokenReservation?.Token2) {
     console.log(`Token de repartidor ${webhookData.Token}, uso repetido`);
     return;
@@ -200,20 +224,23 @@ async function tokenUseResponseHandler(webhook: LockerWebhook) {
     storeName
   } = await getLockerAddressForEmail(webhook.nroSerieLocker);
 
-  if (deliveryTokenReservation?.FechaFin) {
-    await sendPackageDeliveredEmail({
-      to: deliveryTokenReservation.client!,
-      checkoutTime: deliveryTokenReservation.FechaFin,
+  if (deliveryTokenReservation?.mode === "takeAway") {
+    await sendPackageAvailableTakeAwayEmail({
+      to: deliveryTokenReservation?.client!,
+      checkoutTime: deliveryTokenReservation?.FechaFin ?? null,
       userToken: token2,
       lockerAddress: lockerAddress!,
       storeName: storeNameStic ?? storeName,
+      sender: email_sender,
     });
   } else {
-    await sendPackageReadyEmail({
+    await sendPackageAvailablePickPackEmail({
       to: deliveryTokenReservation?.client!,
+      checkoutTime: deliveryTokenReservation?.FechaFin ?? null,
       userToken: token2,
-      storeAddress: lockerAddress!,
+      lockerAddress: lockerAddress!,
       storeName: storeNameStic ?? storeName,
+      sender: email_sender,
     });
   }
 }

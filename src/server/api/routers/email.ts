@@ -1,10 +1,12 @@
 import { z } from "zod";
 import {
   createTRPCRouter,
-  protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
 import { env } from "~/env";
+import { PrivateConfigKeys } from "~/lib/config";
+import { db, schema } from "~/server/db";
+import { and, eq } from "drizzle-orm";
 
 export const emailRouter = createTRPCRouter({
   sendEmail: publicProcedure
@@ -20,9 +22,24 @@ export const emailRouter = createTRPCRouter({
         nReserve: z.number(),
         from: z.string(),
         until: z.string(),
+        entityId: z.string(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const email_sender_config: PrivateConfigKeys = "email_sender";
+      let email_sender: string | undefined = (
+        await db.query.privateConfig.findFirst({
+          where: and(
+            eq(schema.privateConfig.key, email_sender_config),
+            eq(schema.privateConfig.entidadId, input.entityId),
+          ),
+        })
+      )?.value!;
+
+      if (email_sender.trim() === "") {
+        email_sender = undefined;
+      }
+
       try {
         var QRCode = require("qrcode");
         const attachments: {
@@ -54,7 +71,7 @@ export const emailRouter = createTRPCRouter({
         sgMail.setApiKey(env.SENDGRID_API_KEY);
         const msg = {
           to: input.to,
-          from: `${env.MAIL_SENDER}`,
+          from: `${email_sender ?? env.MAIL_SENDER}`,
           subject: `PICKPACK: Confirmación de reserva de locker`,
           html: `
          
