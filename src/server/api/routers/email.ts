@@ -34,9 +34,9 @@ export const emailRouter = createTRPCRouter({
             eq(schema.privateConfig.entidadId, input.entityId),
           ),
         })
-      )?.value!;
+      )?.value;
 
-      if (email_sender.trim() === "") {
+      if (email_sender?.trim() === "") {
         email_sender = undefined;
       }
 

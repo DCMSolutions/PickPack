@@ -85,9 +85,9 @@ async function tokenUseResponseHandler(webhook: LockerWebhook) {
         eq(schema.privateConfig.entidadId, store.entidadId),
       ),
     })
-  )?.value!;
+  )?.value;
 
-  if (email_sender.trim() === "") {
+  if (email_sender?.trim() === "") {
     email_sender = undefined;
   }
 
