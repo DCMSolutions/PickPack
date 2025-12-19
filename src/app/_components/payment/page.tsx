@@ -283,6 +283,7 @@ export default function Payment({ t, ...props }: {
         nReserve: props.nReserve,
         from: formatDateToTextDate(props.startDate!),
         until: formatDateToTextDate(props.endDate!),
+        entityId: props.store.entidadId ?? "",
       });
 
       props.setLoadingPay(false);

@@ -3,13 +3,13 @@
 import LayoutContainer from "~/components/layout-container";
 import { api } from "~/trpc/react";
 
-import { PrivateConfigClaves, type PrivateConfigKeys, PublicConfigClaves, type PublicConfigKeys, PublicConfigMetodoPago, type PublicConfigMetodoPagoKeys } from "~/lib/config";
+import { PublicConfigMetodoPago, type PublicConfigMetodoPagoKeys } from "~/lib/config";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import { useEffect, useState } from "react";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
-import { Loader2Icon, PlusCircleIcon, XIcon } from "lucide-react";
+import { Loader2Icon, PlusCircleIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { FormPrivateGeneric } from "./util";
 
@@ -280,13 +280,12 @@ export default function LockerOcupationPage() {
       <div className="w-full flex flex-col justify-between">
         <h2 className="text-2xl font-semibold mb-3">Parámetros</h2>
         <div className="grid grid-cols-2">
-          {/* <InsertClavePublica invalidate={invalidate} />
-          <InsertClavePrivada invalidate={invalidate} /> */}
           <FormMetodoPago invalidate={invalidate} />
           <FormPlazoReserva invalidate={invalidate} />
           <FormPrivateGeneric invalidate={invalidate} keyName="token_empresa" label="Token" title="Configurar token de empresa" />
           <FormPrivateGeneric invalidate={invalidate} keyName="entidad_lockers_privados_key" label="Entidad Lockers" title="Configurar clave de entidad" />
           <FormPrivateGeneric invalidate={invalidate} keyName="batitienda_key" label="API Key batitienda" title="Token API de Batitienda" />
+          <FormPrivateGeneric invalidate={invalidate} keyName="email_sender" label="Correo electrónico remitente" title="Correo electrónico remitente" />
         </div>
       </div>
       <section className="space-y-2">

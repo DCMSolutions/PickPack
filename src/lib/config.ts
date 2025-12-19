@@ -23,6 +23,7 @@ export const PrivateConfigClaves = {
   "token_empresa": "Token Empresa",
   "entidad_lockers_privados_key": "Clave para acceso de entidad particular",
   "batitienda_key": "API Key batitienda",
+  "email_sender": "Correo electrónico remitente"
 }
 
 export type PrivateConfigKeys = keyof typeof PrivateConfigClaves;

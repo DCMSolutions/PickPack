@@ -260,6 +260,7 @@ export async function POST(request: NextRequest) {
         nReserve: nReserve,
         from: formatDateToTextDate(startDate),
         until: formatDateToTextDate(endDate),
+        entityId: meta.entidad_id,
       });
 
       await db.update(schema.reservas)
